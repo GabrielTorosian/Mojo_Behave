@@ -6,8 +6,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 import time
 
-
-
 use_step_matcher('parse')
 
 DATA_DIALER_BUTTON = '//button[@class="MainMenuButton_button__Wxat6 "]/img[@alt="Data & Dialer"]'
