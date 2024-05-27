@@ -25,9 +25,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run test
+      - name: Print working directory
         run: |
-          behave $env:GITHUB_WORKSPACE/Behave_Mojo/features/
+          echo "Current working directory: $PWD"
+          echo "GITHUB_WORKSPACE: $env:GITHUB_WORKSPACE"
         shell: pwsh
+
+      
 
 
