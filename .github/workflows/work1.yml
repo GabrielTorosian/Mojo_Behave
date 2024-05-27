@@ -10,9 +10,9 @@ jobs:
 
       - name: Install latest Google Chrome
         run: |
-          $localPath = "$env:TEMP\googlechrome_installer.exe"
-          Invoke-WebRequest -Uri "https://dl.google.com/chrome/install/latest/googlechromestandaloneenterprise64.msi" -OutFile $localPath
-          Start-Process -FilePath msiexec.exe -ArgumentList "/i", $localPath, "/quiet", "/norestart" -NoNewWindow -Wait
+          $Path = "$env:TEMP\chrome_installer.exe"
+          Invoke-WebRequest -Uri "https://dl.google.com/chrome/install/latest/chrome_installer.exe" -OutFile $Path
+          Start-Process -FilePath $Path -ArgumentList "/silent", "/install" -NoNewWindow -Wait
         shell: pwsh
         
       - name: Setting up Python
