@@ -7,6 +7,14 @@ jobs:
     steps:
       - name: Checking out repo
         uses: actions/checkout@v3
+
+      - name: Install latest Google Chrome
+        run: |
+          $localPath = "$env:TEMP\googlechrome_installer.exe"
+          Invoke-WebRequest -Uri "https://dl.google.com/chrome/install/latest/googlechromestandaloneenterprise64.msi" -OutFile $localPath
+          Start-Process -FilePath msiexec.exe -ArgumentList "/i", $localPath, "/quiet", "/norestart" -NoNewWindow -Wait
+        shell: pwsh
+        
       - name: Setting up Python
         uses: actions/setup-python@v4
         with:
