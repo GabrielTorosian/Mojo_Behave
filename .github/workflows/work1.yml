@@ -26,6 +26,8 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run test
-        run: behave Behave_Mojo\features\login.feature
+        run: |
+          behave Behave_Mojo/features/login.feature
+        shell: pwsh
 
 
