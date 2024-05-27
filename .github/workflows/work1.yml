@@ -17,12 +17,4 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Install latest Google Chrome
-        run: |
-          $localPath = "$env:TEMP\googlechrome_installer.exe"
-          Invoke-WebRequest -Uri "https://dl.google.com/chrome/install/latest/googlechromestandaloneenterprise64.msi" -OutFile $localPath
-          Start-Process -FilePath msiexec.exe -ArgumentList "/i", $localPath, "/quiet", "/norestart" -NoNewWindow -Wait
-        shell: pwsh
 
-      - name: Run test
-        run: behave Behave_Mojo\features\login.feature
