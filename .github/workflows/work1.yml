@@ -36,6 +36,11 @@ jobs:
           ls -al
         shell: bash
 
+      - name: Run test
+        run: |
+          behave features/login.feature
+        shell: pwsh
+
       
 
 
