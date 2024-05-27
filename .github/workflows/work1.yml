@@ -31,6 +31,11 @@ jobs:
           echo "GITHUB_WORKSPACE: $env:GITHUB_WORKSPACE"
         shell: pwsh
 
+      - name: Print current directory contents
+        run: |
+          ls -al
+        shell: bash
+
       
 
 
