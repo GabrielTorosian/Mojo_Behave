@@ -27,7 +27,7 @@ jobs:
 
       - name: Run test
         run: |
-          behave Behave_Mojo/features/login.feature
+          behave /features/login.feature
         shell: pwsh
 
 
