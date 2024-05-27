@@ -27,7 +27,7 @@ jobs:
 
       - name: Run test
         run: |
-          behave /features/login.feature
+          behave $env:GITHUB_WORKSPACE/Behave_Mojo/features/login.feature
         shell: pwsh
 
 
