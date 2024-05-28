@@ -26,6 +26,7 @@ def launch_browser(context):
 @when('go on page "{page}"')
 def open_login_page(context, page):
     context.browser.get(page)
+    context.browser.maximize_window()
 
 @when('fill "{email}" in field "Email"')
 def fill_email(context, email):
