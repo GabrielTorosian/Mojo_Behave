@@ -38,9 +38,11 @@ def create_new_list_for_import(context):
     context.browser.find_element(By.CSS_SELECTOR, "input.CreateElementModal_textInput__-5kex").send_keys("0101 auto new1")
     context.browser.find_element(By.CSS_SELECTOR, "button.GenericModal_button__1wlPS.GenericModal_confirmButton__1VoK5").click()
     context.wait.until(EC.invisibility_of_element((By.CSS_SELECTOR, "div.GenericModal_title__34niQ")))
-    time.sleep(10)
+    time.sleep(4)
     context.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.NextButton_button__1oH4w")))
-    context.browser.find_element(By.CSS_SELECTOR, "button.NextButton_button__1oH4w").click()
+    #context.browser.find_element(By.CSS_SELECTOR, "button.NextButton_button__1oH4w").click()
+    context.browser.execute_script("arguments[0].scrollIntoView();", "button.NextButton_button__1oH4w")
+    context.browser.execute_script("arguments[0].click();", "button.NextButton_button__1oH4w")
 
 @then('Step3 mapping fields')
 def mapping_fields(context):
