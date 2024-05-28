@@ -1,0 +1,42 @@
+name: test work2 import file
+on:
+  workflow_dispatch:
+jobs:
+  test1:
+    runs-on: windows-latest
+    steps:
+      - name: Checking out repo
+        uses: actions/checkout@v3
+
+      - name: Install latest Google Chrome
+        run: |
+          $Path = "$env:TEMP\chrome_installer.exe"
+          Invoke-WebRequest -Uri "https://dl.google.com/chrome/install/latest/chrome_installer.exe" -OutFile $Path
+          Start-Process -FilePath $Path -ArgumentList "/silent", "/install" -NoNewWindow -Wait
+        shell: pwsh
+
+      - name: Setting up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Print working directory
+        run: |
+          echo "Current working directory: $PWD"
+          echo "GITHUB_WORKSPACE: $env:GITHUB_WORKSPACE"
+        shell: pwsh
+
+      - name: Print current directory contents
+        run: |
+          ls -al
+        shell: bash
+
+      - name: Run test
+        run: |
+          behave features/import_file.feature
+        shell: pwsh
