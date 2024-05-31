@@ -41,3 +41,8 @@ jobs:
           behave features/login.feature
         shell: pwsh
 
+      - name: Run test
+          run: |
+            behave features/navigation_main_pages.feature
+          shell: pwsh
+
