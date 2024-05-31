@@ -42,7 +42,7 @@ jobs:
         shell: pwsh
 
       - name: Run test
-          run: |
-            behave features/navigation_main_pages.feature
-          shell: pwsh
+        run: |
+          behave features/navigation_main_pages.feature
+        shell: pwsh
 
