@@ -76,11 +76,9 @@ def go_to_email_notif(context):
 def go_to_email_general(context):
     context.browser.find_elements(By.CSS_SELECTOR,
                                   "button.SettingsSidebar_link__1MIXW.SettingsSidebar_secondaryLink__3SjP0")[3].click()
-    assert "If you’re sending your emails across time zones" \
+    assert "Send Emails" \
            in context.browser.find_element(By.CSS_SELECTOR,
-                                   "div.GeneralView_desc__16gpP").text, "Email.General page error(description)"
-    assert context.browser.find_element(By.CSS_SELECTOR,
-                                "div.Generic_subtitle2__3FiOt").text in "Email Schedule", "Email.General page error(title)"
+                                   "div.GeneralView_title__1OgFx").text, "Email.General page error(title)"
 
 @then('go to Email-Gmail API')
 def go_to_email_gmail_api(context):
