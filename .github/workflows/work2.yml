@@ -1,4 +1,4 @@
-name: test work2 import file
+name: test work2
 on:
   workflow_dispatch:
 jobs:
