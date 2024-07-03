@@ -38,5 +38,5 @@ jobs:
 
       - name: Run test
         run: |
-          behave features/navigation_settings_pages.feature
+          behave features/create_activies.feature
         shell: pwsh
