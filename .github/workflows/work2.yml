@@ -38,5 +38,5 @@ jobs:
 
       - name: Run test
         run: |
-          behave features/create_activies.feature
+          behave features/create_activities.feature
         shell: pwsh
