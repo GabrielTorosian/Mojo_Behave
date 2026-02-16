@@ -10,12 +10,13 @@ Feature: Navigation Account pages
         And fill "password1" in field "Password"
         And click "Submit"
         And close Expired Data popup if it present
-        Then wait until page be loaded in showing "Training Webinars" title
+        Then wait until page be loaded in showing "Training Webinars" button
 
         Then go to Account-Profile
-        And go to Account-Billing
-        And go to Account-Agents Information
-        And go to Account-Dialer Subscriptions
+
+        And go to Account-Manage Payments
+        And go to Account-Agents
+        And go to Account-Subscriptions
         And go to Account-Refer-A-Friend Invites
 
         And logout

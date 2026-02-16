@@ -8,25 +8,25 @@ import time
 
 use_step_matcher('parse')
 
-DATA_DIALER_BUTTON = '//button[@class="MainMenuButton_button__Wxat6 "]/img[@alt="Data & Dialer"]'
-DATA_TABLE = "table.Table_tableFixed__3MyJT"
-GLOBAL_SEARCH_FIELD_SELECTOR = "button.DummySidebarSearch_searchInputContainer__46fue"
+DATA_DIALER_BUTTON = '//button[@id="menu-button-my-data"]'
+DATA_TABLE = "table.Table_tableFixed__qZs5B"
+GLOBAL_SEARCH_FIELD_SELECTOR = "button.DummySidebarSearch_searchInputContainer__uV8MF"
 ACTIVITY_CONTACT = "Knoxville2711"
 
-APP_BUTTON_CS = '//img[@src="/static/media/add-appt-icon.3aeee97e.svg"]'
-TASK_BUTTON_CS = '//img[@src="/static/media/add-task-icon.816cf495.svg"]'
-FU_BUTTON_CS = '//img[@src="/static/media/add-f_call-icon.b35c81a6.svg"]'
+APP_BUTTON_CS = '//img[@src="/static/media/add-appt-icon.234ba54595b96cf8ccdbf070e8490726.svg"]'
+TASK_BUTTON_CS = '//img[@src="/static/media/add-task-icon.07218b3bd865353f3b0cb03f245ead71.svg"]'
+FU_BUTTON_CS = '//img[@src="/static/media/add-f_call-icon.7f902c41024728b3801ffee4d091aa93.svg"]'
 
-ACTIVITY_POPUP_SELECTOR = "div.GenericModal_mainContainer__ecgLX"
+ACTIVITY_POPUP_SELECTOR = "div.GenericModal_mainContainer__Wy5u3"
 
-APP_TITLE_FIELD = "input.AppointmentPopup_textInput__3Q_R4"
-APP_DESCRIPTION_FIELD = "textarea.AppointmentPopup_descriptionTextarea__1zZTz"
+APP_TITLE_FIELD = "input.AppointmentPopup_textInput__5xi4k"
+APP_DESCRIPTION_FIELD = "textarea.AppointmentPopup_descriptionTextarea__dNpWU"
 
-TASK_TITLE_FIELD = "input.TaskPopup_textInput__2wRI9"
-TASK_DESCRIPTION_FIELD = "textarea.TaskPopup_descriptionTextarea__28A6J"
+TASK_TITLE_FIELD = "input.TaskPopup_textInput__6lWYN"
+TASK_DESCRIPTION_FIELD = "textarea.TaskPopup_descriptionTextarea__gvOes"
 
-FU_TITLE_FIELD = "input.FollowUpCallPopup_textInput__2BYvH"
-FU_DESCRIPTION_FIELD = "textarea.FollowUpCallPopup_descriptionTextarea__3tsG1"
+FU_TITLE_FIELD = "input.FollowUpCallPopup_textInput__AMlxe"
+FU_DESCRIPTION_FIELD = "textarea.FollowUpCallPopup_descriptionTextarea__f3aPG"
 
 
 def activity_creation_cs(context, create_activity_button, title_field, description_field, activity_name):
@@ -35,16 +35,21 @@ def activity_creation_cs(context, create_activity_button, title_field, descripti
     context.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, DATA_TABLE)))
     # search contact
     context.browser.find_element(By.CSS_SELECTOR, GLOBAL_SEARCH_FIELD_SELECTOR).click()
-    context.browser.find_element(By.CSS_SELECTOR, "input.SidebarSearch_searchInput__33nNB").clear()
-    context.browser.find_element(By.CSS_SELECTOR, "input.SidebarSearch_searchInput__33nNB").send_keys(ACTIVITY_CONTACT)
+    context.browser.find_element(By.CSS_SELECTOR, "input.SidebarSearch_searchInput__TNhew").clear()
+    context.browser.find_element(By.CSS_SELECTOR, "input.SidebarSearch_searchInput__TNhew").send_keys(ACTIVITY_CONTACT)
+
+    context.browser.find_element(By.XPATH, '//button[@class="SidebarSearch_searchSubmitBtn__OLnSD "]').click()
     time.sleep(3)
-    context.wait.until(EC.presence_of_element_located((By.XPATH, '//button[@class="styles_btn__1cyQv"]')))
+    context.wait.until(EC.presence_of_element_located((By.XPATH, '//button[text()="View all results in table"]')))
     context.browser.find_element(By.XPATH,
-                                 '//button[@class="SidebarSearch_btnTransparent__P--MT ContactGroup_contactGroupHeader__23rSz"]').click()
+                                 '//div[@class="ContactGroup_arrow__Cnq6b"]').click()
     # open contact
     #context.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.SearchResults_resultField__1Mqdp.SearchResults_resultItemFullName__21KTL")))
     context.browser.find_element(By.XPATH,
-                         '//div[@class="SearchResults_resultField__1Mqdp SearchResults_resultItemFullName__21KTL"]').click()
+                         '//div[@class="SearchResults_resultField__EPRqp SearchResults_resultItemFullName__ZgABr"]').click()
+    # close search bar
+    context.browser.find_element(By.CSS_SELECTOR, "input.SidebarSearch_searchInput__TNhew").clear()
+    context.browser.find_element(By.XPATH, '//div[@class="SidebarSearch_closeAnchor__hXp0+"]').click()
     # create activity
     context.browser.find_element(By.XPATH, create_activity_button).click()
     context.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ACTIVITY_POPUP_SELECTOR)))
@@ -53,12 +58,12 @@ def activity_creation_cs(context, create_activity_button, title_field, descripti
     context.browser.find_element(By.CSS_SELECTOR, description_field).send_keys(
         f"{activity_name} description autotest")
     time.sleep(3)
-    context.browser.find_element(By.CSS_SELECTOR, "button.GenericModal_button__1wlPS.GenericModal_confirmButton__1VoK5").click()
-    context.wait.until(EC.invisibility_of_element((By.CSS_SELECTOR, "div.GenericModal_mainContainer__ecgLX")))
+    context.browser.find_element(By.CSS_SELECTOR, "button.GenericModal_button__lmCtH.GenericModal_confirmButton__BAaWj").click()
+    context.wait.until(EC.invisibility_of_element((By.CSS_SELECTOR, "div.GenericModal_mainContainer__Wy5u3")))
     # click on Activities section in CS
-    context.browser.find_element(By.CSS_SELECTOR, "#contactPopover div.SidebarLink_link__3AKAg#activities").click()
+    context.browser.find_element(By.XPATH, "//button[@id='activities' and text()='Activities']").click()
     # check activity's title
-    assert context.browser.find_element(By.CSS_SELECTOR, "span.ContactActivity_title__1LxXW").text in f"{activity_name} title autotest", \
+    assert context.browser.find_element(By.CSS_SELECTOR, "span.ContactActivity_title__vMR3N").text in f"{activity_name} title autotest", \
         f"{activity_name} was not created"
 
 '''
@@ -71,16 +76,19 @@ def go_to_calendar(context):
 
 def search_delete_activity_in_calendar(context):
     # search contact
-    calendar_search = context.browser.find_element(By.CSS_SELECTOR, "input.CalendarTableView_searchInput__18SdX")
+    calendar_search = context.browser.find_element(By.CSS_SELECTOR, "input.CalendarTableView_searchInput__LKjjP")
     calendar_search.clear()
     calendar_search.send_keys(ACTIVITY_CONTACT)
-    context.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "tr.Table_tr__1tLPZ.Table_trClickable__1UdAH")))
+    time.sleep(1)
+    context.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "tbody.Table_tbody__WYAlK")))
     # delete contact
-    context.browser.find_element(By.CSS_SELECTOR, "button.ContextMenu_contextButton__3LrLO").click()
-    context.browser.find_elements(By.CSS_SELECTOR, "button.PopoverMenu_menuButton__2MQjV")[2].click()
+    context.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "button.ContextMenu_contextButton__hZpmC.false.false")))
+    context.browser.find_element(By.CSS_SELECTOR, "button.ContextMenu_contextButton__hZpmC.false.false").click()
+    context.wait.until(EC.presence_of_element_located((By.XPATH, '//button[@class="PopoverMenu_menuButton__Vmhae"]/div[text()="Delete"]')))
+    context.browser.find_element(By.XPATH, '//button[@class="PopoverMenu_menuButton__Vmhae"][div[text()="Delete"]]').click()
     context.browser.find_element(By.CSS_SELECTOR,
-                         "button.confirmAlert_actionButton__nRyS0.confirmAlert_actionButtonConfirm__2nOW7").click()
-    context.wait.until(EC.invisibility_of_element((By.CSS_SELECTOR, "tr.Table_tr__1tLPZ.Table_trClickable__1UdAH")))
+                         "button.confirmAlert_actionButton__gdvBM.confirmAlert_actionButtonConfirm__ARIc7").click()
+    context.wait.until(EC.invisibility_of_element((By.CSS_SELECTOR, 'div.confirmAlert_confirmAlert__Dg54z')))
 
 @when('create Appointment from CS')
 def create_app(context):
@@ -88,14 +96,17 @@ def create_app(context):
 
 @step('go to Calendar')
 def go_to_calendar(context):
-    context.browser.find_element(By.XPATH, '//img[@src="/static/media/menu-calendar.a14c050d.svg"]').click()
+    context.browser.find_element(By.XPATH, '//div[text()="Calendar"]').click()
+    # Warning confirmation
     context.browser.find_element(By.CSS_SELECTOR,
-                         "button.confirmAlert_actionButton__nRyS0.confirmAlert_actionButtonConfirm__2nOW7").click()
+                         "button.confirmAlert_actionButton__gdvBM.confirmAlert_actionButtonConfirm__ARIc7").click()
     context.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, DATA_TABLE)))
-    checkbox_all = context.browser.find_elements(By.XPATH, '//button[@class="Checkbox_Checkbox__2jpzA "]')[0]
-    print(checkbox_all.is_selected)
-    if not checkbox_all.is_selected():
-        checkbox_all.click()
+    '''
+    checkbox_all = context.browser.find_elements(By.CSS_SELECTOR, '//div[@class="CalendarSidebar_filterContainer__qP9J4 CalendarSidebar_filterSelected__WFbPV" ]//button[@class="Checkbox_Checkbox__FWKJN "]')
+    print(checkbox_all[0])
+    print(checkbox_all[0].is_selected)
+    if not checkbox_all[0].is_selected():
+        checkbox_all.click()'''
 
 @then('search App and delete it')
 def search_delete_app_in_calendar(context):

@@ -10,7 +10,7 @@ Feature: Login to Mojo account
         And fill "password1" in field "Password"
         And click "Submit"
         And close Expired Data popup if it present
-        Then wait until page be loaded in showing "Training Webinars" title
+        Then wait until page be loaded in showing "Training Webinars" button
         And logout
         And close browser
 

@@ -1,7 +1,7 @@
 attrs==23.1.0
 behave==1.2.6
 certifi==2023.5.7
-cffi==1.15.1
+cffi==1.17.1
 colorama==0.4.6
 exceptiongroup==1.1.2
 h11==0.14.0

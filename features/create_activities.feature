@@ -10,7 +10,7 @@ Feature: Creation of App, Task, FU call activies. Deleting this activities from 
         And fill "password1" in field "Password"
         And click "Submit"
         And close Expired Data popup if it present
-        Then wait until page be loaded in showing "Training Webinars" title
+        Then wait until page be loaded in showing "Training Webinars" button
 
         When create Appointment from CS
         And go to Calendar
