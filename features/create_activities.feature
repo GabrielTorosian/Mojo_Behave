@@ -2,16 +2,9 @@
 Feature: Creation of App, Task, FU call activies. Deleting this activities from Calendar
 
     Background:
-        Given launch Chrome browser
+        Given launch Chrome browser with saved session
 
     Scenario: Successfull login
-        When go on page "https://lb11.mojosells.com/login/"
-        And fill "g.torosyan@g-sg.net" in field "Email"
-        And fill "password1" in field "Password"
-        And click "Submit"
-        And close Expired Data popup if it present
-        Then wait until page be loaded in showing "Training Webinars" button
-
         When create Appointment from CS
         And go to Calendar
         Then search App and delete it

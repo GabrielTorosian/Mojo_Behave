@@ -65,6 +65,68 @@ def launch_browser(context):
     context.browser.implicitly_wait(15)
     context.wait = WebDriverWait(context.browser, 15)
 
+
+@given('launch Chrome browser with saved session')
+def launch_browser_with_session(context):
+    # Новый шаг: запускает браузер и использует куки из login.feature вместо логина.
+    # Используется в Background всех feature-файлов, кроме login.feature.
+    chrome_options = Options()
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+
+    context.browser = webdriver.Chrome(
+        service=Service(r'C:\Users\gabik\PycharmProjects\Behave_Mojo\chromedriver.exe'),
+        options=chrome_options
+    )
+    context.browser.implicitly_wait(15)
+    context.wait = WebDriverWait(context.browser, 15)
+
+    # Сначала открываем любую страницу домена — без этого браузер не примет куки.
+    # Куки можно добавить только для домена, который уже открыт в браузере.
+    context.browser.get("https://lb11.mojosells.com/login/")
+    context.browser.maximize_window()
+
+    if context.saved_cookies:
+        # ПУТЬ 1: куки есть (login.feature уже отработал) — инжектируем их в браузер.
+        # Браузер передаст эти куки серверу при следующем запросе,
+        # и сервер посчитает нас залогиненными без ввода пароля.
+        for cookie in context.saved_cookies:
+            # Убираем поле sameSite — оно иногда вызывает ошибку при add_cookie()
+            cookie.pop('sameSite', None)
+            try:
+                context.browser.add_cookie(cookie)
+            except Exception:
+                pass
+        # Переходим на главную страницу — куки уже установлены, логин произойдёт автоматически
+        context.browser.get("https://lb11.mojosells.com/")
+    else:
+        # ПУТЬ 2: куки ещё не сохранены (login.feature не запускался или запускается отдельно).
+        # Делаем обычный логин как запасной вариант.
+        context.browser.find_element(By.XPATH, EMAIL_FIELD).send_keys("g.torosyan@g-sg.net")
+        context.browser.find_element(By.XPATH, PASSWORD_FIELD).send_keys("password1")
+        context.browser.find_element(By.XPATH, SUBMIT_BUTTON).click()
+        context.wait.until(EC.visibility_of_element_located(
+            (By.XPATH, '//div[@class="HomeView_textContent__dAjt4" and text()="Join Webinar"]')
+        ))
+
+    # Закрываем popup "Expired Data" если он появился (не всегда присутствует)
+    try:
+        context.wait.until(EC.presence_of_element_located(
+            (By.CSS_SELECTOR, EXPIRED_DATA_POPUP_BUTTON)
+        )).click()
+    except Exception:
+        pass
+
+
+@then('save login cookies')
+def save_login_cookies(context):
+    # Новый шаг: сохраняет куки текущей сессии в context.saved_cookies.
+    # Вызывается в login.feature ПОСЛЕ успешного логина, НО ДО logout.
+    # После logout сессия на сервере инвалидируется и куки станут недействительными.
+    # context — общий объект Behave, доступный во всех feature-файлах в рамках одного запуска.
+    context.saved_cookies = context.browser.get_cookies()
+
+
 @when('go on page "{page}"')
 def open_login_page(context, page):
     context.browser.get(page)

@@ -11,6 +11,7 @@ Feature: Login to Mojo account
         And click "Submit"
         And close Expired Data popup if it present
         Then wait until page be loaded in showing "Training Webinars" button
+        And save login cookies
         And logout
         And close browser
 
