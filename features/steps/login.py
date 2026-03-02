@@ -62,10 +62,16 @@ def click_submit(context):
 
 @when('close Expired Data popup if it present')
 def close_expired_data_popup(context):
-    try:
-        context.browser.find_element(By.CSS_SELECTOR, EXPIRED_DATA_POPUP_BUTTON).click()
-    except NoSuchElementException:
-        pass
+    """
+    Закрывает popup "Expired Data" если он появился после логина.
+    Используем find_elements (множественное число) — он возвращает пустой список
+    если элемент не найден, вместо исключения. Это надёжнее для Remote WebDriver.
+    """
+    import time
+    time.sleep(2)  # Ждём появления popup (он может грузиться с задержкой)
+    popups = context.browser.find_elements(By.CSS_SELECTOR, EXPIRED_DATA_POPUP_BUTTON)
+    if popups:
+        popups[0].click()
 
 @then('wait until page be loaded in showing "Training Webinars" button')
 def assert_home_page(context):
