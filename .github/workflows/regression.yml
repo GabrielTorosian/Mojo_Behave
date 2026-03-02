@@ -8,9 +8,8 @@
 #   GitHub VM только отправляет Selenium-команды.
 #
 # КАК ЗАПУСТИТЬ:
-#   1. Автоматически — каждый день в 8:00 утра (UTC, = 12:00 по Москве)
+#   1. Автоматически — каждый будний день (Пн-Пт) в 8:00 CET
 #   2. Вручную — GitHub → Actions → "Regression Tests" → "Run workflow"
-#   3. При пуше в main — автоматически после каждого git push
 #
 # НЕОБХОДИМЫЕ СЕКРЕТЫ (Settings → Secrets and variables → Actions):
 #   BROWSERSTACK_USERNAME   — логин BrowserStack
@@ -19,31 +18,33 @@
 # ГДЕ СМОТРЕТЬ РЕЗУЛЬТАТЫ:
 #   - GitHub Actions → вкладка workflow run → зелёный/красный статус
 #   - BrowserStack Dashboard → Builds → "Regression ..." → видео + логи
+#
+# ОЧЕРЁДНОСТЬ ТЕСТОВ:
+#   Приоритет 1 — Базовые (логин, навигация)
+#   Приоритет 2 — Основной функционал (CRUD)
+#   Приоритет 3 — Специфические функции (звонки, NHS, Skip Tracer)
 # =============================================================================
 
 name: Regression Tests
 
 # --- КОГДА ЗАПУСКАТЬ ---
 on:
-  # По расписанию (cron). Формат: минуты часы день_месяца месяц день_недели
-  # "0 8 * * 1-5" = каждый будний день в 08:00 UTC (12:00 МСК)
+  # По расписанию: каждый будний день (Пн-Пт) в 06:00 UTC = 08:00 CET
+  # Летом (CEST, UTC+2) это будет 08:00. Зимой (CET, UTC+1) — 07:00.
+  # Формат cron: минуты часы день_месяца месяц день_недели
   schedule:
-    - cron: '0 8 * * 1-5'
+    - cron: '0 6 * * 1-5'
 
-  # При пуше в main — тесты запустятся автоматически после каждого коммита
-  push:
-    branches: [main]
-
-  # Ручной запуск — кнопка "Run workflow" в GitHub Actions UI
+  # Ручной запуск — кнопка "Run workflow" в GitHub Actions
+  # (push в main НЕ запускает тесты автоматически — только по расписанию или вручную)
   workflow_dispatch:
 
 jobs:
   regression:
-    # Ubuntu — легче и быстрее чем Windows. Нам не нужна Windows на VM,
-    # потому что Chrome запускается в BrowserStack, а не здесь.
+    # Ubuntu — легче и быстрее чем Windows.
+    # Нам не нужен Chrome на этой машине — он запускается в BrowserStack.
     runs-on: ubuntu-latest
 
-    # Максимальное время выполнения (минуты).
     # Если тесты зависнут — workflow остановится через 60 минут.
     timeout-minutes: 60
 
@@ -58,42 +59,102 @@ jobs:
         with:
           python-version: '3.9'
 
-      # --- Шаг 3: Установить зависимости (behave, selenium, и т.д.) ---
+      # --- Шаг 3: Установить зависимости (behave, selenium и т.д.) ---
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # --- Шаг 4: Запуск тестов ---
-      # Все feature-файлы запускаются через behave.
-      # Файлы с префиксом DEV* исключаются (это незавершённые тесты).
-      #
-      # BROWSERSTACK_USERNAME и BROWSERSTACK_ACCESS_KEY
-      # берутся из GitHub Secrets и передаются как переменные окружения.
-      # environment.py читает их через os.environ.get()
-      #
-      # --no-capture: показывать print() в логах (для дебага)
-      # --tags=~@skip: пропускать тесты с тегом @skip (если понадобится)
-      - name: Run Behave regression tests
+      # =====================================================================
+      # ПРИОРИТЕТ 1 — БАЗОВЫЕ ТЕСТЫ
+      # Если логин или навигация не работают — дальше тестировать бессмысленно
+      # =====================================================================
+
+      - name: "P1: Login"
         env:
           BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
           BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
           BROWSERSTACK_BUILD_NAME: "Regression #${{ github.run_number }} (${{ github.event_name }})"
-        run: |
-          behave features/ \
-            --no-capture \
-            --tags="~@skip" \
-            --exclude="DEV.*" \
-            --format=pretty \
-            2>&1 | tee test_results.log
+        run: behave features/login.feature --no-capture
 
-      # --- Шаг 5: Сохранить логи как артефакт ---
-      # Даже если тесты упали, логи будут доступны для скачивания
-      # в GitHub Actions → workflow run → Artifacts
-      - name: Upload test logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-log
-          path: test_results.log
-          retention-days: 30
+      - name: "P1: Navigation — main pages"
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          BROWSERSTACK_BUILD_NAME: "Regression #${{ github.run_number }} (${{ github.event_name }})"
+        run: behave features/navigation_main_pages.feature --no-capture
+
+      - name: "P1: Navigation — account section"
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          BROWSERSTACK_BUILD_NAME: "Regression #${{ github.run_number }} (${{ github.event_name }})"
+        run: behave features/navigation_account_section.feature --no-capture
+
+      # =====================================================================
+      # ПРИОРИТЕТ 2 — ОСНОВНОЙ ФУНКЦИОНАЛ (CRUD операции)
+      # Создание, импорт, экспорт, удаление — основные бизнес-процессы
+      # =====================================================================
+
+      - name: "P2: Create and delete contact"
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          BROWSERSTACK_BUILD_NAME: "Regression #${{ github.run_number }} (${{ github.event_name }})"
+        run: behave features/create_delete_contact.feature --no-capture
+
+      - name: "P2: Create activities (calendar)"
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          BROWSERSTACK_BUILD_NAME: "Regression #${{ github.run_number }} (${{ github.event_name }})"
+        run: behave features/create_activities.feature --no-capture
+
+      - name: "P2: Import CSV file"
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          BROWSERSTACK_BUILD_NAME: "Regression #${{ github.run_number }} (${{ github.event_name }})"
+        run: behave features/import_file.feature --no-capture
+
+      - name: "P2: Export contacts"
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          BROWSERSTACK_BUILD_NAME: "Regression #${{ github.run_number }} (${{ github.event_name }})"
+        run: behave features/export_contacts.feature --no-capture
+
+      # =====================================================================
+      # ПРИОРИТЕТ 3 — СПЕЦИФИЧЕСКИЕ ФУНКЦИИ
+      # Звонки, поиск, Skip Tracer — детальные проверки
+      # =====================================================================
+
+      - name: "P3: CS — call attempts"
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          BROWSERSTACK_BUILD_NAME: "Regression #${{ github.run_number }} (${{ github.event_name }})"
+        run: behave features/cs_call_attempts.feature --no-capture
+
+      - name: "P3: CS — mark contact attempts"
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          BROWSERSTACK_BUILD_NAME: "Regression #${{ github.run_number }} (${{ github.event_name }})"
+        run: behave features/cs_mark_contact_attempts.feature --no-capture
+
+      - name: "P3: NHS — neighborhood search"
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          BROWSERSTACK_BUILD_NAME: "Regression #${{ github.run_number }} (${{ github.event_name }})"
+        run: behave features/nhs_street.feature --no-capture
+
+      - name: "P3: Skip Tracer — one time lookup"
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          BROWSERSTACK_BUILD_NAME: "Regression #${{ github.run_number }} (${{ github.event_name }})"
+        run: behave features/st_one_time_loockup.feature --no-capture
+
+      # send_email.feature — пропущен (@skip), тест не завершён

@@ -1,4 +1,4 @@
-@send_email
+@send_email @skip
 Feature: Send email from CS (hasn't finished. problem with wait of success popup )
 
     Background:
