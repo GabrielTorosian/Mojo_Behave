@@ -1,3 +1,26 @@
+# IDE
 .idea/
-venv/
 
+# Python virtual environment
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Локальные файлы (не нужны в репозитории)
+debug_activities.html
+*.backup
+chromedriver.exe
+
+# Claude Code (локальная конфигурация)
+.claude/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Логи тестов (генерируются в CI)
+test_results.log
