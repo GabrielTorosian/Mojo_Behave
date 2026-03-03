@@ -92,22 +92,26 @@ def after_scenario(context, scenario):
       - какие тесты прошли (зелёные)
       - какие упали (красные) + видео момента падения
     """
-    if scenario.status == "passed":
-        context.browser.execute_script(
-            'browserstack_executor: {"action": "setSessionStatus", '
-            '"arguments": {"status": "passed", "reason": "Test passed"}}'
-        )
-    else:
-        # Берём текст ошибки если есть, чтобы показать в BrowserStack Dashboard
-        reason = "Test failed"
-        if scenario.error_message:
-            # Обрезаем длинные сообщения и убираем кавычки (чтобы не сломать JSON)
-            reason = str(scenario.error_message)[:255].replace('"', "'")
+    try:
+        if scenario.status == "passed":
+            context.browser.execute_script(
+                'browserstack_executor: {"action": "setSessionStatus", '
+                '"arguments": {"status": "passed", "reason": "Test passed"}}'
+            )
+        else:
+            # Берём текст ошибки если есть, чтобы показать в BrowserStack Dashboard
+            reason = "Test failed"
+            if scenario.error_message:
+                # Обрезаем длинные сообщения и убираем кавычки (чтобы не сломать JSON)
+                reason = str(scenario.error_message)[:255].replace('"', "'")
 
-        context.browser.execute_script(
-            'browserstack_executor: {"action": "setSessionStatus", '
-            f'"arguments": {{"status": "failed", "reason": "{reason}"}}}}'
-        )
+            context.browser.execute_script(
+                'browserstack_executor: {"action": "setSessionStatus", '
+                f'"arguments": {{"status": "failed", "reason": "{reason}"}}}}'
+            )
+    except Exception:
+        # Браузер уже закрыт степом "close browser" — ничего не делаем
+        pass
 
 
 def after_all(context):
@@ -115,5 +119,9 @@ def after_all(context):
     Выполняется ОДИН РАЗ после всех тестов.
     Закрывает удалённый браузер в BrowserStack.
     """
-    if hasattr(context, 'browser'):
-        context.browser.quit()
+    try:
+        if hasattr(context, 'browser'):
+            context.browser.quit()
+    except Exception:
+        # Браузер уже закрыт степом "close browser" — ничего не делаем
+        pass

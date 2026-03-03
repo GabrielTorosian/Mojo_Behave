@@ -14,6 +14,7 @@ Feature: Creation of App, Task, FU call activies. Deleting this activities from 
 
         When create Appointment from CS
         And go to Calendar
+        Then check ALL activities
         Then search App and delete it
         When create Task from CS
         And go to Calendar

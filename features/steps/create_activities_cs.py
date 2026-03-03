@@ -108,6 +108,28 @@ def go_to_calendar(context):
     if not checkbox_all[0].is_selected():
         checkbox_all.click()'''
 
+@then('check ALL activities')
+def check_all_activities(context):
+    """Ensure 'All' checkbox is checked in Calendar sidebar so all activity types are visible."""
+    # The "All" checkbox structure:
+    #   <div class="CalendarSidebar_filterContainer__... [CalendarSidebar_filterSelected__... if checked]">
+    #     <button class="Checkbox_Checkbox__FWKJN">
+    #       <div class="Checkbox_title__JDF6b">All</div>
+    #     </button>
+    #   </div>
+
+    # Find the "All" checkbox button by its inner text
+    all_checkbox = context.browser.find_element(
+        By.XPATH,
+        '//button[contains(@class, "Checkbox_Checkbox__FWKJN")][.//div[text()="All"]]'
+    )
+    # The parent div has "filterSelected" in class when checked — check it
+    parent_div = all_checkbox.find_element(By.XPATH, '..')
+    if "filterSelected" not in parent_div.get_attribute("class"):
+        # Not checked — click to enable all activity types (App, Task, FU call, etc.)
+        all_checkbox.click()
+        time.sleep(1)
+
 @then('search App and delete it')
 def search_delete_app_in_calendar(context):
     search_delete_activity_in_calendar(context)
