@@ -3,24 +3,29 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.keys import Keys
-from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.action_chains import ActionChains
 import time
 
 
 @then('click Create Contact button')
 def click_create_contact_button(context):
-    context.browser.find_element(By.XPATH, '//a[@data-tip="Create Contact"]').click()
-    try:
-        context.wait.until(EC.presence_of_all_elements_located((By.XPATH, '//div[@class="SelectField_selectFieldContainer__2R3j0  "]')))
-    except TimeoutException:
-        print("Create Contact page has not loaded")
+    # wait for the "Create Contact" button to be clickable, then click it
+    context.wait.until(EC.element_to_be_clickable(
+        (By.XPATH, '//a[@data-tip="Create Contact"]'))).click()
+    # wait for the contact form to fully load — check that input fields are present.
+    # Old selector (SelectField_selectFieldContainer__2R3j0) is outdated (CSS module hash changed).
+    # Input fields are a reliable indicator that the form is ready for filling.
+    assert context.wait.until(EC.presence_of_all_elements_located(
+        (By.XPATH, '//input[@class="InputRow_inputElement__A3E9s"]')
+    )), "Create Contact page has not loaded"
 
 @then('fill fields and create group for a new contact')
 def fill_fields_new_conatact(context):
-    input_fields = context.browser.find_elements(By.XPATH, '//input[@class="InputRow_inputElement__A3E9s"]')
+    # wait for all input fields to be present before filling them
+    input_fields = context.wait.until(EC.presence_of_all_elements_located(
+        (By.XPATH, '//input[@class="InputRow_inputElement__A3E9s"]')))
     input_fields[0].send_keys('Autocreate Contact01')
     input_fields[1].send_keys('test_email@op.net')
     input_fields[2].send_keys('9991111111')
@@ -28,25 +33,38 @@ def fill_fields_new_conatact(context):
     input_fields[4].send_keys('Los Angeles')
     input_fields[5].send_keys('CA')
     input_fields[6].send_keys('90001')
-    context.browser.find_element(By.XPATH, '//button[@id="select_field_3_add_btn"]').click()
-    context.browser.find_element(By.XPATH, '//input[@placeholder="Enter Name"]').send_keys(
-        'Autotest CrContact group')
-    context.browser.find_element(By.XPATH, '//button[text()="Save"]').click()
-    time.sleep(2)
-    context.browser.find_element(By.XPATH, '//button[text()="Create Contact"]').click()
-    try:
-        context.wait.until(EC.presence_of_element_located((By.XPATH, '//div[text()="Autocreate Contact01"]')))
-    except TimeoutException:
-        print('Contact Autocreate Contact01 has not created')
+    # open "Add group" dialog and create a new group
+    context.wait.until(EC.element_to_be_clickable(
+        (By.XPATH, '//button[@id="select_field_3_add_btn"]'))).click()
+    context.wait.until(EC.visibility_of_element_located(
+        (By.XPATH, '//input[@placeholder="Enter Name"]'))).send_keys('Autotest CrContact group')
+    context.wait.until(EC.element_to_be_clickable(
+        (By.XPATH, '//button[text()="Save"]'))).click()
+    # After clicking "Save", a modal overlay appears while the group is being saved.
+    # Wait for the overlay to disappear before clicking "Create Contact",
+    # otherwise the click lands on the overlay and fails with ElementClickInterceptedException.
+    context.wait.until(EC.invisibility_of_element_located(
+        (By.CSS_SELECTOR, "div.ReactModal__Overlay")))
+    # click "Create Contact" button to submit the form
+    context.wait.until(EC.element_to_be_clickable(
+        (By.XPATH, '//button[text()="Create Contact"]'))).click()
+    # verify the contact was created — its name must appear on the page
+    assert context.wait.until(EC.presence_of_element_located(
+        (By.XPATH, '//div[text()="Autocreate Contact01"]')
+    )), "Contact Autocreate Contact01 has not been created"
 
 @then('create note "{note_text}"')
 def create_note(context, note_text):
-    note_input = context.browser.find_element(By.XPATH, '//textarea[@class="ContactNotes_noteTextarea__Y6FTC"]')
+    # wait for the note textarea to be visible, then type the note
+    note_input = context.wait.until(EC.visibility_of_element_located(
+        (By.XPATH, '//textarea[@class="ContactNotes_noteTextarea__Y6FTC"]')))
     note_input.send_keys(note_text)
-    #press post note
-    context.browser.find_element(By.XPATH, '//button[@class="ContactNotes_postNote__1VKsb ContactNotes_btnWhiteBlue__JG2Re" and text()="Post"]').click()
-    saved_note = context.browser.find_element(By.XPATH, '//span[@style="white-space: pre-wrap; word-break: break-word;"]')
-    time.sleep(1)
+    # click "Post" button to save the note
+    context.wait.until(EC.element_to_be_clickable(
+        (By.XPATH, '//button[@class="ContactNotes_postNote__1VKsb ContactNotes_btnWhiteBlue__JG2Re" and text()="Post"]'))).click()
+    # wait for the saved note text to appear and verify it matches what we typed
+    saved_note = context.wait.until(EC.visibility_of_element_located(
+        (By.XPATH, '//span[@style="white-space: pre-wrap; word-break: break-word;"]')))
     assert note_text in saved_note.text, "Note is not created!"
 
 '''
@@ -80,31 +98,42 @@ def delete_created_note(context):
 
 @then('delete contact Autocreate Contact01')
 def delete_created_contact(context):
-    # open Actions menu in cs
-    context.browser.find_element(By.XPATH, '//button[@class="Button_btn__W1TTO Button_btnBlue__DoHY2" and text()="Actions"]').click()
-    context.browser.find_element(By.XPATH, '//div[@class="PopoverMenu_buttonContent__2N3TD" and text()="Delete Contact"]').click()
-    try:
-        context.wait.until(EC.presence_of_element_located((By.XPATH, '//div[@class="confirmAlert_message__JGnt1" and text()="Are you sure you want to delete this contact?"]')))
-    except TimeoutException:
-        print("There is no popup of delete contact Are you sure you want to delete this contact?")
-    context.browser.find_element(By.XPATH, '//button[@class="confirmAlert_actionButton__gdvBM confirmAlert_actionButtonConfirm__ARIc7" and text()="Delete"]').click()
-    try:
-        context.wait.until_not(EC.presence_of_element_located((By.XPATH, '//div[text()="Autocreate Contact01"]')))
-    except TimeoutException:
-        print("Problem with deleting contact Autocreate Contact01")
+    # click "Actions" button in the contact sheet
+    context.wait.until(EC.element_to_be_clickable(
+        (By.XPATH, '//button[@class="Button_btn__W1TTO Button_btnBlue__DoHY2" and text()="Actions"]'))).click()
+    # click "Delete Contact" in the dropdown menu
+    context.wait.until(EC.element_to_be_clickable(
+        (By.XPATH, '//div[@class="PopoverMenu_buttonContent__2N3TD" and text()="Delete Contact"]'))).click()
+    # wait for the confirmation dialog to appear — assert so test fails if it doesn't
+    assert context.wait.until(EC.presence_of_element_located(
+        (By.XPATH, '//div[@class="confirmAlert_message__JGnt1" and text()="Are you sure you want to delete this contact?"]')
+    )), "Delete contact confirmation popup did not appear"
+    # click "Delete" in the confirmation dialog
+    context.wait.until(EC.element_to_be_clickable(
+        (By.XPATH, '//button[@class="confirmAlert_actionButton__gdvBM confirmAlert_actionButtonConfirm__ARIc7" and text()="Delete"]'))).click()
+    # verify the contact has been removed from the page
+    assert context.wait.until_not(EC.presence_of_element_located(
+        (By.XPATH, '//div[text()="Autocreate Contact01"]')
+    )), "Contact Autocreate Contact01 was not deleted"
 
 @then('delete created group Autotest CrContact group')
 def delete_group(context):
-    context.browser.find_element(By.XPATH, '//button[@id="groups"]//img[@src="/static/media/menu-search-icon.8a26c4e62c8ed637da9cee5ff1be5a37.svg"]/..').click()
-    context.browser.find_element(By.XPATH, '//input[@class="SelectField_searchBarSide__lBnji"]').send_keys("Autotest CrContact group")
-    context.browser.find_element(By.XPATH, '//div[@class="SelectFieldElement_name__RO3oK" and text()="Autotest CrContact group"]/..//div[@class="SelectFieldElement_manageWrapper__eP6VG"]').click()
-    context.browser.find_element(By.XPATH, '//div[@class="SelectFieldElement_menuItem__AcM75" and text()="Delete"]').click()
-    context.browser.find_element(By.XPATH, '//button[@class="GenericModal_button__lmCtH  GenericModal_confirmButton__BAaWj" and text()="Delete"]').click()
-    try:
-        context.wait.until_not(EC.presence_of_element_located((By.XPATH, '//div[@class="SelectFieldElement_name__RO3oK" and text()="Autotest CrContact group"]')))
-    except TimeoutException:
-        print("Problem with deleting group")
-
-
-
-
+    # open the groups search dropdown
+    context.wait.until(EC.element_to_be_clickable(
+        (By.XPATH, '//button[@id="groups"]//img[@src="/static/media/menu-search-icon.8a26c4e62c8ed637da9cee5ff1be5a37.svg"]/..'))).click()
+    # search for the group by name
+    context.wait.until(EC.visibility_of_element_located(
+        (By.XPATH, '//input[@class="SelectField_searchBarSide__lBnji"]'))).send_keys("Autotest CrContact group")
+    # click the manage (three dots) icon next to the group
+    context.wait.until(EC.element_to_be_clickable(
+        (By.XPATH, '//div[@class="SelectFieldElement_name__RO3oK" and text()="Autotest CrContact group"]/..//div[@class="SelectFieldElement_manageWrapper__eP6VG"]'))).click()
+    # click "Delete" in the manage menu
+    context.wait.until(EC.element_to_be_clickable(
+        (By.XPATH, '//div[@class="SelectFieldElement_menuItem__AcM75" and text()="Delete"]'))).click()
+    # confirm deletion in the modal dialog
+    context.wait.until(EC.element_to_be_clickable(
+        (By.XPATH, '//button[@class="GenericModal_button__lmCtH  GenericModal_confirmButton__BAaWj" and text()="Delete"]'))).click()
+    # verify the group has been removed from the list
+    assert context.wait.until_not(EC.presence_of_element_located(
+        (By.XPATH, '//div[@class="SelectFieldElement_name__RO3oK" and text()="Autotest CrContact group"]')
+    )), "Group 'Autotest CrContact group' was not deleted"
