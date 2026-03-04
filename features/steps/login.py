@@ -1,17 +1,12 @@
 from behave import *
-#from selenium import webdriver
+from selenium import webdriver
 from selenium.webdriver.common.by import By
-#from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
-#from selenium.webdriver.chrome.service import Service
-#from selenium.webdriver.chrome.options import Options
-#import time
-
-#BrowserStack settings
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-
-
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+import time
 
 use_step_matcher('parse')
 
@@ -26,9 +21,23 @@ EXPIRED_DATA_POPUP_BUTTON = "button.GenericModal_button__1wlPS.GenericModal_canc
 
 @given('launch Chrome browser')
 def launch_browser(context):
-    pass
+    # В режиме BrowserStack браузер уже создан в environment.py (before_all),
+    # поэтому здесь ничего делать не нужно — просто пропускаем.
+    if not getattr(context, 'run_local', False):
+        return
 
+    # --- Локальный режим: создаём локальный Chrome ---
+    chrome_options = Options()
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
 
+    context.browser = webdriver.Chrome(
+        service=Service(r'C:\Users\gabik\PycharmProjects\Behave_Mojo\chromedriver.exe'),
+        options=chrome_options
+    )
+
+    context.browser.implicitly_wait(15)
+    context.wait = WebDriverWait(context.browser, 15)
 
 @when('go on page "{page}"')
 def open_login_page(context, page):
@@ -64,11 +73,10 @@ def click_submit(context):
 def close_expired_data_popup(context):
     """
     Закрывает popup "Expired Data" если он появился после логина.
-    Используем find_elements (множественное число) — он возвращает пустой список
-    если элемент не найден, вместо исключения. Это надёжнее для Remote WebDriver.
+    Используем find_elements — возвращает пустой список если элемент не найден,
+    вместо исключения. Надёжнее работает как локально, так и на BrowserStack.
     """
-    import time
-    time.sleep(2)  # Ждём появления popup (он может грузиться с задержкой)
+    time.sleep(2)  # Ждём появления popup (может грузиться с задержкой)
     popups = context.browser.find_elements(By.CSS_SELECTOR, EXPIRED_DATA_POPUP_BUTTON)
     if popups:
         popups[0].click()
@@ -98,8 +106,9 @@ def assert_invalid_login(context):
 
 @then('close browser')
 def close_browse(context):
-    pass
-
-
-
-
+    # В режиме BrowserStack браузер закрывается в environment.py (after_all),
+    # поэтому здесь ничего не делаем — иначе after_scenario не сможет
+    # отправить результат теста в BrowserStack Dashboard.
+    if not getattr(context, 'run_local', False):
+        return
+    context.browser.quit()

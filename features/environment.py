@@ -28,7 +28,20 @@ def before_all(context):
     """
     Выполняется ОДИН РАЗ перед всеми тестами.
     Создаёт подключение к удалённому браузеру в BrowserStack.
+
+    Для ЛОКАЛЬНОГО запуска (без BrowserStack) установите переменную окружения:
+        set RUN_LOCAL=true      (Windows CMD)
+        $env:RUN_LOCAL="true"   (PowerShell)
+    При локальном запуске браузер создаётся в степе "launch Chrome browser" (login.py),
+    здесь только помечаем режим.
     """
+
+    # --- Проверка режима запуска ---
+    # Если RUN_LOCAL=true — пропускаем подключение к BrowserStack.
+    # Браузер будет создан в степе "launch Chrome browser" (login.py).
+    context.run_local = os.environ.get("RUN_LOCAL", "false").lower() == "true"
+    if context.run_local:
+        return
 
     # --- BrowserStack credentials ---
     # Читаем из переменных окружения (GitHub Secrets попадают сюда автоматически).
@@ -77,7 +90,10 @@ def before_scenario(context, scenario):
     Выполняется ПЕРЕД КАЖДЫМ сценарием (тестом).
     Устанавливает имя теста в BrowserStack Dashboard,
     чтобы в отчёте было видно какой именно тест выполняется.
+    В локальном режиме — пропускаем (нет BrowserStack API).
     """
+    if getattr(context, 'run_local', False):
+        return
     context.browser.execute_script(
         'browserstack_executor: {"action": "setSessionName", '
         f'"arguments": {{"name": "{scenario.name}"}}}}'
@@ -91,7 +107,10 @@ def after_scenario(context, scenario):
     Благодаря этому в Dashboard видно:
       - какие тесты прошли (зелёные)
       - какие упали (красные) + видео момента падения
+    В локальном режиме — пропускаем (нет BrowserStack API).
     """
+    if getattr(context, 'run_local', False):
+        return
     try:
         if scenario.status == "passed":
             context.browser.execute_script(
