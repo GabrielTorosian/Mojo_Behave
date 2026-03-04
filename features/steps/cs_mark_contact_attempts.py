@@ -37,6 +37,38 @@ def _dump_activities_html(context):
 
 use_step_matcher('parse')
 
+# ── Global search selectors (same as in create_activities_cs.py) ─────────────
+GLOBAL_SEARCH_FIELD   = "button.DummySidebarSearch_searchInputContainer__uV8MF"
+SEARCH_INPUT          = "input.SidebarSearch_searchInput__TNhew"
+SEARCH_SUBMIT_BTN     = '//button[@class="SidebarSearch_searchSubmitBtn__OLnSD "]'
+VIEW_ALL_RESULTS_BTN  = '//button[text()="View all results in table"]'
+CONTACT_GROUP_ARROW   = '//div[@class="ContactGroup_arrow__Cnq6b"]'
+CONTACT_NAME_RESULT   = '//div[@class="SearchResults_resultField__EPRqp SearchResults_resultItemFullName__ZgABr"]'
+SEARCH_CLOSE_BTN      = '//div[@class="SidebarSearch_closeAnchor__hXp0+"]'
+
+
+# ── Step: search and open a contact by name ─────────────────────────────────
+@then('search contact "{contact_name}"')
+def search_contact(context, contact_name):
+    """Open the global search sidebar, find a contact by name, and open its Contact Sheet."""
+    # open global search sidebar
+    context.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, GLOBAL_SEARCH_FIELD))).click()
+    # wait for the search input to appear, then type contact name
+    search_input = context.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, SEARCH_INPUT)))
+    search_input.clear()
+    search_input.send_keys(contact_name)
+    # submit search and wait for results to load
+    context.browser.find_element(By.XPATH, SEARCH_SUBMIT_BTN).click()
+    context.wait.until(EC.presence_of_element_located((By.XPATH, VIEW_ALL_RESULTS_BTN)))
+    # expand contact group arrow to reveal individual contacts
+    context.wait.until(EC.element_to_be_clickable((By.XPATH, CONTACT_GROUP_ARROW))).click()
+    # click on the contact name to open its Contact Sheet
+    context.wait.until(EC.element_to_be_clickable((By.XPATH, CONTACT_NAME_RESULT))).click()
+    # close the search sidebar so it doesn't block other elements
+    context.browser.find_element(By.CSS_SELECTOR, SEARCH_INPUT).clear()
+    context.browser.find_element(By.XPATH, SEARCH_CLOSE_BTN).click()
+
+
 # ── Activities tab ────────────────────────────────────────────────────────────
 ACTIVITIES_TAB     = '//button[@id="activities"]'
 INFORMATION_HEADER = '//div[@class="style_header__wTvSF" and text()="Information:"]'

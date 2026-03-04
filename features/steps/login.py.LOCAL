@@ -1,17 +1,44 @@
 from behave import *
-#from selenium import webdriver
+from selenium import webdriver
 from selenium.webdriver.common.by import By
-#from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
-#from selenium.webdriver.chrome.service import Service
-#from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 #import time
-
+'''
 #BrowserStack settings
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
+def before_all(context):
+    # BrowserStack credentials
+    USERNAME = "gabrieltorosian_kJ8C4S"
+    ACCESS_KEY = "9QwmEsToKHjHgpYXion5"
 
+    desired_cap = {
+        'os': 'Windows',
+        'os_version': '10',
+        'browser': 'Chrome',
+        'browser_version': 'latest',
+        'browserstack.local': 'false',
+        'browserstack.selenium_version': '4.0.0',
+        'name': 'Behave Regression Tests',  # название сессии
+        'build': 'Build 1.0'  # для группировки запусков
+    }
+
+    context.browser = webdriver.Remote(
+        command_executor=f'https://{USERNAME}:{ACCESS_KEY}@hub-cloud.browserstack.com/wd/hub',
+        desired_capabilities=desired_cap
+    )
+
+    context.browser.implicitly_wait(10)
+
+def after_all(context):
+    context.browser.quit()
+
+# -----------BroeserStuck
+'''
 
 use_step_matcher('parse')
 
@@ -26,9 +53,17 @@ EXPIRED_DATA_POPUP_BUTTON = "button.GenericModal_button__1wlPS.GenericModal_canc
 
 @given('launch Chrome browser')
 def launch_browser(context):
-    pass
+    #context.browser = webdriver.Chrome()
+    # Создаем объект с опциями для Chrome
+    chrome_options = Options()
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
 
+    # Инициализируем драйвер с использованием опций
+    context.browser = webdriver.Chrome(service=Service(r'C:\Users\gabik\PycharmProjects\Behave_Mojo\chromedriver.exe'), options=chrome_options)
 
+    context.browser.implicitly_wait(15)
+    context.wait = WebDriverWait(context.browser, 15)
 
 @when('go on page "{page}"')
 def open_login_page(context, page):
@@ -62,16 +97,10 @@ def click_submit(context):
 
 @when('close Expired Data popup if it present')
 def close_expired_data_popup(context):
-    """
-    Закрывает popup "Expired Data" если он появился после логина.
-    Используем find_elements (множественное число) — он возвращает пустой список
-    если элемент не найден, вместо исключения. Это надёжнее для Remote WebDriver.
-    """
-    import time
-    time.sleep(2)  # Ждём появления popup (он может грузиться с задержкой)
-    popups = context.browser.find_elements(By.CSS_SELECTOR, EXPIRED_DATA_POPUP_BUTTON)
-    if popups:
-        popups[0].click()
+    try:
+        context.browser.find_element(By.CSS_SELECTOR, EXPIRED_DATA_POPUP_BUTTON).click()
+    except NoSuchElementException:
+        pass
 
 @then('wait until page be loaded in showing "Training Webinars" button')
 def assert_home_page(context):
@@ -98,8 +127,4 @@ def assert_invalid_login(context):
 
 @then('close browser')
 def close_browse(context):
-    pass
-
-
-
-
+    context.browser.quit()
