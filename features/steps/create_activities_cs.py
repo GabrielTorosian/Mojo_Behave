@@ -3,7 +3,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 import time
 
 use_step_matcher('parse')
@@ -31,63 +31,90 @@ FU_DESCRIPTION_FIELD = "textarea.FollowUpCallPopup_descriptionTextarea__f3aPG"
 
 def activity_creation_cs(context, create_activity_button, title_field, description_field, activity_name):
     # go to Data Dialer
-    context.browser.find_element(By.XPATH, DATA_DIALER_BUTTON).click()
+    context.wait.until(EC.element_to_be_clickable((By.XPATH, DATA_DIALER_BUTTON))).click()
     context.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, DATA_TABLE)))
-    # search contact
-    context.browser.find_element(By.CSS_SELECTOR, GLOBAL_SEARCH_FIELD_SELECTOR).click()
-    context.browser.find_element(By.CSS_SELECTOR, "input.SidebarSearch_searchInput__TNhew").clear()
-    context.browser.find_element(By.CSS_SELECTOR, "input.SidebarSearch_searchInput__TNhew").send_keys(ACTIVITY_CONTACT)
-
+    # open global search sidebar
+    context.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, GLOBAL_SEARCH_FIELD_SELECTOR))).click()
+    # wait for the search input to appear, then type contact name
+    search_input = context.wait.until(EC.visibility_of_element_located(
+        (By.CSS_SELECTOR, "input.SidebarSearch_searchInput__TNhew")))
+    search_input.clear()
+    search_input.send_keys(ACTIVITY_CONTACT)
+    # submit search and wait for results to load
     context.browser.find_element(By.XPATH, '//button[@class="SidebarSearch_searchSubmitBtn__OLnSD "]').click()
-    time.sleep(3)
     context.wait.until(EC.presence_of_element_located((By.XPATH, '//button[text()="View all results in table"]')))
-    context.browser.find_element(By.XPATH,
-                                 '//div[@class="ContactGroup_arrow__Cnq6b"]').click()
-    # open contact
-    #context.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.SearchResults_resultField__1Mqdp.SearchResults_resultItemFullName__21KTL")))
-    context.browser.find_element(By.XPATH,
-                         '//div[@class="SearchResults_resultField__EPRqp SearchResults_resultItemFullName__ZgABr"]').click()
+    # expand contact group arrow
+    context.wait.until(EC.element_to_be_clickable(
+        (By.XPATH, '//div[@class="ContactGroup_arrow__Cnq6b"]'))).click()
+    # open the contact from search results
+    context.wait.until(EC.element_to_be_clickable(
+        (By.XPATH, '//div[@class="SearchResults_resultField__EPRqp SearchResults_resultItemFullName__ZgABr"]'))).click()
     # close search bar
     context.browser.find_element(By.CSS_SELECTOR, "input.SidebarSearch_searchInput__TNhew").clear()
     context.browser.find_element(By.XPATH, '//div[@class="SidebarSearch_closeAnchor__hXp0+"]').click()
-    # create activity
-    context.browser.find_element(By.XPATH, create_activity_button).click()
+    # click the button to create activity (App / Task / FU call)
+    context.wait.until(EC.element_to_be_clickable((By.XPATH, create_activity_button))).click()
     context.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ACTIVITY_POPUP_SELECTOR)))
-    # input title, description
-    context.browser.find_element(By.CSS_SELECTOR, title_field).send_keys(f"{activity_name} title autotest")
+    # fill in title and description
+    context.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, title_field))).send_keys(
+        f"{activity_name} title autotest")
     context.browser.find_element(By.CSS_SELECTOR, description_field).send_keys(
         f"{activity_name} description autotest")
-    time.sleep(3)
-    context.browser.find_element(By.CSS_SELECTOR, "button.GenericModal_button__lmCtH.GenericModal_confirmButton__BAaWj").click()
+    # Wait for the form to finish internal validation before clicking Confirm.
+    # There is no visible DOM change to wait for here, so a short sleep is necessary —
+    # without it the modal closes but the activity does not get saved.
+    time.sleep(2)
+    # click the Confirm button to create the activity
+    context.wait.until(EC.element_to_be_clickable(
+        (By.CSS_SELECTOR, "button.GenericModal_button__lmCtH.GenericModal_confirmButton__BAaWj"))).click()
+    # wait for the modal to fully close (activity is being saved on the backend)
     context.wait.until(EC.invisibility_of_element((By.CSS_SELECTOR, "div.GenericModal_mainContainer__Wy5u3")))
-    # click on Activities section in CS
-    context.browser.find_element(By.XPATH, "//button[@id='activities' and text()='Activities']").click()
-    # check activity's title
-    assert context.browser.find_element(By.CSS_SELECTOR, "span.ContactActivity_title__vMR3N").text in f"{activity_name} title autotest", \
-        f"{activity_name} was not created"
+    # switch to Activities tab in Contact Sheet
+    context.wait.until(EC.element_to_be_clickable(
+        (By.XPATH, "//button[@id='activities' and text()='Activities']"))).click()
+    # wait until the activity title with expected text appears in the list.
+    # text_to_be_present_in_element waits for BOTH element visibility AND correct text,
+    # unlike visibility_of_element_located which only checks if element is visible (text may still be loading)
+    # assert will fail with a clear message if the title doesn't appear within 15 sec.
+    # Without "assert", the comma after wait.until() would silently create a tuple — no error raised!
+    expected_title = f"{activity_name} title autotest"
+    assert context.wait.until(EC.text_to_be_present_in_element(
+        (By.CSS_SELECTOR, "span.ContactActivity_title__vMR3N"), expected_title
+    )), f"{activity_name} was not created"
 
-'''
-def go_to_calendar(context):
-    context.browser.find_element(By.XPATH, '//img[@src="/static/media/menu-calendar.a14c050d.svg"]').click()
-    context.browser.find_element(By.CSS_SELECTOR,
-                         "button.confirmAlert_actionButton__nRyS0.confirmAlert_actionButtonConfirm__2nOW7").click()
-    context.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, DATA_TABLE)))
-'''
+def click_with_retry(context, locator, retries=3):
+    """
+    Find element and click it, retrying if the DOM re-renders between find and click.
+    Standard WebDriverWait.until().click() can fail with StaleElementReferenceException
+    because the element found by until() may become stale before .click() executes.
+    This helper retries the entire find+click sequence.
+    """
+    for attempt in range(retries):
+        try:
+            context.wait.until(EC.element_to_be_clickable(locator)).click()
+            return
+        except StaleElementReferenceException:
+            if attempt == retries - 1:
+                raise
 
 def search_delete_activity_in_calendar(context):
-    # search contact
-    calendar_search = context.browser.find_element(By.CSS_SELECTOR, "input.CalendarTableView_searchInput__LKjjP")
+    # type contact name into calendar search field
+    calendar_search = context.wait.until(EC.visibility_of_element_located(
+        (By.CSS_SELECTOR, "input.CalendarTableView_searchInput__LKjjP")))
     calendar_search.clear()
     calendar_search.send_keys(ACTIVITY_CONTACT)
-    time.sleep(1)
+    # wait for the table body to update with search results
     context.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "tbody.Table_tbody__WYAlK")))
-    # delete contact
-    context.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "button.ContextMenu_contextButton__hZpmC.false.false")))
-    context.browser.find_element(By.CSS_SELECTOR, "button.ContextMenu_contextButton__hZpmC.false.false").click()
-    context.wait.until(EC.presence_of_element_located((By.XPATH, '//button[@class="PopoverMenu_menuButton__Vmhae"]/div[text()="Delete"]')))
-    context.browser.find_element(By.XPATH, '//button[@class="PopoverMenu_menuButton__Vmhae"][div[text()="Delete"]]').click()
-    context.browser.find_element(By.CSS_SELECTOR,
-                         "button.confirmAlert_actionButton__gdvBM.confirmAlert_actionButtonConfirm__ARIc7").click()
+    # Click the context menu "..." button.
+    # After search, the table may re-render causing StaleElementReferenceException
+    # between find and click — use retry wrapper to handle this.
+    click_with_retry(context, (By.CSS_SELECTOR, "button.ContextMenu_contextButton__hZpmC"))
+    # click "Delete" in the popover menu
+    context.wait.until(EC.element_to_be_clickable(
+        (By.XPATH, '//button[@class="PopoverMenu_menuButton__Vmhae"][div[text()="Delete"]]'))).click()
+    # confirm deletion in the alert dialog
+    context.wait.until(EC.element_to_be_clickable(
+        (By.CSS_SELECTOR, "button.confirmAlert_actionButton__gdvBM.confirmAlert_actionButtonConfirm__ARIc7"))).click()
     context.wait.until(EC.invisibility_of_element((By.CSS_SELECTOR, 'div.confirmAlert_confirmAlert__Dg54z')))
 
 @when('create Appointment from CS')
@@ -96,17 +123,12 @@ def create_app(context):
 
 @step('go to Calendar')
 def go_to_calendar(context):
-    context.browser.find_element(By.XPATH, '//div[text()="Calendar"]').click()
-    # Warning confirmation
-    context.browser.find_element(By.CSS_SELECTOR,
-                         "button.confirmAlert_actionButton__gdvBM.confirmAlert_actionButtonConfirm__ARIc7").click()
+    context.wait.until(EC.element_to_be_clickable((By.XPATH, '//div[text()="Calendar"]'))).click()
+    # wait for the "unsaved changes" confirmation dialog, then confirm
+    context.wait.until(EC.element_to_be_clickable(
+        (By.CSS_SELECTOR, "button.confirmAlert_actionButton__gdvBM.confirmAlert_actionButtonConfirm__ARIc7"))).click()
+    # wait for calendar table to fully load
     context.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, DATA_TABLE)))
-    '''
-    checkbox_all = context.browser.find_elements(By.CSS_SELECTOR, '//div[@class="CalendarSidebar_filterContainer__qP9J4 CalendarSidebar_filterSelected__WFbPV" ]//button[@class="Checkbox_Checkbox__FWKJN "]')
-    print(checkbox_all[0])
-    print(checkbox_all[0].is_selected)
-    if not checkbox_all[0].is_selected():
-        checkbox_all.click()'''
 
 @then('check ALL activities')
 def check_all_activities(context):
@@ -118,11 +140,11 @@ def check_all_activities(context):
     #     </button>
     #   </div>
 
-    # Find the "All" checkbox button by its inner text
-    all_checkbox = context.browser.find_element(
+    # Wait for sidebar to load, then find the "All" checkbox button by its inner text
+    all_checkbox = context.wait.until(EC.presence_of_element_located((
         By.XPATH,
         '//button[contains(@class, "Checkbox_Checkbox__FWKJN")][.//div[text()="All"]]'
-    )
+    )))
     # The parent div has "filterSelected" in class when checked — check it
     parent_div = all_checkbox.find_element(By.XPATH, '..')
     if "filterSelected" not in parent_div.get_attribute("class"):
@@ -150,10 +172,6 @@ def create_fu(context):
 @then('search FU call and delete it')
 def search_delete_fu_in_calendar(context):
     search_delete_activity_in_calendar(context)
-
-
-
-
 
 
 
